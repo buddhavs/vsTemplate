@@ -9,6 +9,7 @@ import (
 // https://golang.org/pkg/testing
 // https://github.com/smartystreets/gunit
 // https://godoc.org/github.com/smartystreets/gunit
+// https://github.com/smartystreets/assertions
 
 func ExamplePerm() {
 	for _, value := range []int{1, 2, 4, 3, 0} {
