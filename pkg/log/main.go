@@ -6,17 +6,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
-
-type appLogger struct {
-	*zap.Logger
-	atom *zap.AtomicLevel
-}
-
-func (al *appLogger) setLevel(l zapcore.Level) {
-	al.atom.SetLevel(l)
-}
 
 var once sync.Once
 
