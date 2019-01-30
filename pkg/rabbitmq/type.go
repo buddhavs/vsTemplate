@@ -13,9 +13,9 @@ type ConsumeHandle func(context.Context, *amqp.Channel) error
 
 // RmqStruct is the instance of rabbitmq service
 type RmqStruct struct {
+	ctx                context.Context
 	uuid               string
 	rmqCfg             config.RmqConnectionType
-	rmqQueue           config.RmqQueueType
 	rmqConnection      *amqp.Connection
 	rmqChannel         *amqp.Channel
 	connCloseError     chan *amqp.Error

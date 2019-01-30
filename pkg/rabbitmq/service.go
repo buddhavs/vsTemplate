@@ -13,11 +13,21 @@ import (
 	"go.uber.org/zap"
 )
 
-func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
+func defaultHandle(ctx context.Context, channel *amqp.Channel) error {
+	log.Logger.Info(
+		"default rabbitmq consume handler",
+		zap.String("service", serviceName),
+	)
+
+	<-ctx.Done()
+	return errors.New("service ends")
+}
+
+func (rmq *RmqStruct) start() <-chan string {
 	status := make(chan string)
 
 	go func() {
-		sctx, cancel := context.WithCancel(ctx)
+		sctx, cancel := context.WithCancel(rmq.ctx)
 		var reconnect = true
 
 		defer func() {
@@ -55,7 +65,7 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 		go rmq.consume(sctx)
 		status <- "rabbitmq consumer established"
 
-		err := rmq.catchEvent(ctx).(retryError)
+		err := rmq.catchEvent().(retryError)
 		reconnect = err.reconnect
 		status <- fmt.Sprintf("amqp event occurred: %s", err.Error())
 	}()
@@ -63,17 +73,17 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 	return status
 }
 
-func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
+func (rmq *RmqStruct) catchEvent() error {
 	select {
-	case <-ctx.Done():
+	case <-rmq.ctx.Done():
 		log.Logger.Info(
-			"application ends",
+			"service ends",
 			zap.String("service", serviceName),
 			zap.String("uuid", rmq.uuid),
 		)
 
 		return retryError{
-			errors.New("application ends, cleanup connection loop"),
+			errors.New("service ends, cleanup connection loop"),
 			false,
 		}
 	case err, _ := <-rmq.connCloseError:
@@ -107,7 +117,7 @@ func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 	}
 }
 
-// rmqConnect creates amqp connection
+// createConnect creates amqp connection
 func (rmq *RmqStruct) createConnect() error {
 	amqpURL := amqp.URI{
 		Scheme:   "amqp",
@@ -155,7 +165,7 @@ func (rmq *RmqStruct) createConnect() error {
 	return nil
 }
 
-// rmqChannel creates amqp channel
+// createChannel creates amqp channel
 func (rmq *RmqStruct) createChannel() error {
 	myChannel, err := rmq.rmqConnection.Channel()
 	if err != nil {

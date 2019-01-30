@@ -119,17 +119,17 @@ func Start() {
 	signal.RegisterHandler(syscall.SIGTERM, quitSig)
 	signal.RegisterHandler(syscall.SIGINT, quitSig)
 
-	r1 := rmq.NewRmq(cfg.Run(), "cbs_queue_1")
+	r1, _ := rmq.NewRmq(ctx, cfg.Run())
 	r1.RegisterConsumeHandle(fakeHandle1)
-	go r1.Run(ctx)
+	go r1.Run()
 
-	r2 := rmq.NewRmq(cfg.Run(), "cbs_queue_2")
+	r2, _ := rmq.NewRmq(ctx, cfg.Run())
 	r2.RegisterConsumeHandle(fakeHandle2)
-	go r2.Run(ctx)
+	go r2.Run()
 
-	r3 := rmq.NewRmq(cfg.Run(), "cbs_queue_3")
+	r3, _ := rmq.NewRmq(ctx, cfg.Run())
 	r3.RegisterConsumeHandle(fakeHandle3)
-	go r3.Run(ctx)
+	go r3.Run()
 
 	<-ctx.Done()
 

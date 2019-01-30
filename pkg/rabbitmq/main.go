@@ -13,16 +13,19 @@ import (
 var serviceName = "rabbitmq"
 
 // NewRmq creates new rabbitmq instance
-func NewRmq(cfg config.Config, queue string) *RmqStruct {
+// NewXxx always takes context as argument
+func NewRmq(ctx context.Context, cfg config.Config) (*RmqStruct, error) {
 	// TODO: log using config version.
-	// validate it's value.
+	// validate it's value by calling cfg.ValidateRmq()
+	// return error
 	rs := RmqStruct{
-		uuid:     uuid.New().String(),
-		rmqCfg:   cfg.GetRmqConnectionConfig(),
-		rmqQueue: cfg.GetRmqQueueConfig(queue),
+		ctx:           ctx,
+		uuid:          uuid.New().String(),
+		rmqCfg:        cfg.GetRmqConnectionConfig(),
+		consumeHandle: defaultHandle,
 	}
 
-	return &rs
+	return &rs, nil
 }
 
 // RegisterConsumeHandle register consumer's handle
@@ -31,7 +34,7 @@ func (rmq *RmqStruct) RegisterConsumeHandle(handle ConsumeHandle) {
 }
 
 // Run starts rabbitmq service
-func (rmq *RmqStruct) Run(ctx context.Context) {
+func (rmq *RmqStruct) Run() {
 	log.Logger.Info(
 		"service starts",
 		zap.String("service", serviceName),
@@ -40,10 +43,10 @@ func (rmq *RmqStruct) Run(ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-rmq.ctx.Done():
 			return
 		default:
-			for s := range rmq.start(ctx) {
+			for s := range rmq.start() {
 				log.Logger.Info(
 					"status",
 					zap.String("service", serviceName),
