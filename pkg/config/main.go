@@ -38,6 +38,14 @@ func Run() Config {
 				NoLocal:   false,
 				NoWait:    false,
 			},
+			"cbs_queue_3": {
+				QueueName: "cbs_queue_3",
+				Consumer:  "cbs_queue_3",
+				AutoAck:   false,
+				Exclusive: false,
+				NoLocal:   false,
+				NoWait:    false,
+			},
 		},
 	}
 }

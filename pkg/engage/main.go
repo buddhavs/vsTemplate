@@ -74,6 +74,35 @@ func fakeHandle2(ctx context.Context, channel *amqp.Channel) error {
 	}
 }
 
+func fakeHandle3(ctx context.Context, channel *amqp.Channel) error {
+	deliveries, err := channel.Consume(
+		"cbs_queue_3",
+		"cbs_queue_3",
+		false, // autoack
+		false, // exclusive is unnecessary in rmqctl's usecase.
+		false, // nolocal is not supported by rabbitmq.
+		false, // nowait
+		nil,
+	)
+	if err != nil {
+		return errors.New("channel consume creating failed")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("application ends")
+		case d, ok := <-deliveries:
+			if ok {
+				fmt.Printf("%s\n", string(d.Body))
+				d.Ack(false)
+			} else {
+				break
+			}
+		}
+	}
+}
+
 // Start starts the program.
 func Start() {
 	defer log.Sync()
@@ -93,8 +122,12 @@ func Start() {
 	go r1.Run(ctx)
 
 	r2 := rmq.NewRmq(cfg.Run(), "cbs_queue_2")
-	r2.RegisterConsumeHandle(fakeHandle1)
+	r2.RegisterConsumeHandle(fakeHandle2)
 	go r2.Run(ctx)
+
+	r3 := rmq.NewRmq(cfg.Run(), "cbs_queue_3")
+	r3.RegisterConsumeHandle(fakeHandle3)
+	go r3.Run(ctx)
 
 	<-ctx.Done()
 
