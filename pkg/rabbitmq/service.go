@@ -53,9 +53,8 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 		go rmq.consume(sctx)
 		status <- "rabbitmq consumer established"
 
-		err := rmq.catchEvent(ctx)
-		re := err.(retryError)
-		reconnect = re.reconnect
+		err := rmq.catchEvent(ctx).(retryError)
+		reconnect = err.reconnect
 		status <- fmt.Sprintf("amqp event occurred: %s", err.Error())
 	}()
 
