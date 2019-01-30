@@ -54,7 +54,7 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 
 		// block call
 		if err := rmq.catchEvent(ctx); err != nil {
-			status <- fmt.Sprintf("amqp event occured: %s", err.Error())
+			status <- fmt.Sprintf("amqp event occurred: %s", err.Error())
 		}
 	}()
 
