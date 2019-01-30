@@ -1,34 +1,32 @@
 package signal
 
 import (
+	"context"
 	"os"
 	"os/signal"
 )
 
-var (
-	// key: signal name, value: channel
-	registered = make(map[string]cancelChan)
-)
+var handleMap = make(map[string]handleSlice)
 
-func registerHandler(handler func(), sig os.Signal) {
+// Not a concurrent safe function.
+func registerHandler(
+	sig os.Signal,
+	handler ...func(context.Context)) {
 
-	if cancel, ok := registered[sig.String()]; ok {
-		close(cancel)
+	if hslice, ok := handleMap[sig.String()]; ok {
+		handleMap[sig.String()] = append(hslice, handler...)
+		return
 	}
-
-	cancelchan := make(cancelChan)
-	registered[sig.String()] = cancelchan
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, sig)
 
 	go func() {
 		for {
-			select {
-			case <-cancelchan:
-				return
-			case <-sigchan:
-				handler()
+			<-sigchan
+
+			for h := range handleMap[sig.String()] {
+				go h()
 			}
 		}
 	}()

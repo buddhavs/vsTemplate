@@ -2,253 +2,165 @@ package rabbitmq
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"syscall"
+	"net"
 	"time"
 
+	"vstmp/pkg/log"
+
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
-func reConnect(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Printf("reConnect cleanup..\n")
-			close(cleanup["reconnect"])
+func start(ctx context.Context) <-chan string {
+	status := make(chan string)
+
+	go func() {
+		sctx, cancel := context.WithCancel(ctx)
+
+		defer func() {
+			log.Logger.Info(
+				"re-establish rabbitmq connection",
+				zap.String(
+					"wait_time",
+					(time.Duration(rmqCfg.Wait)*time.Second).String()),
+			)
+
+			time.Sleep(time.Duration(rmqCfg.Wait) * time.Second)
+
+			// cleanup consumer goroutine
+			cancel()
+			// cleanup status
+			close(status)
+		}()
+
+		// create rabbitmq connection
+		if err := createConnect(); err == nil {
+			status <- "rabbitmq connection established"
+		} else {
 			return
-		case <-rmq.startConnection:
-			if rmq.reconn.Load().(bool) {
-				continue
-			} else {
-				rmq.createConnect()
-			}
 		}
-	}
+
+		// create rabbitmq channel
+		if err := createChannel(); err == nil {
+			status <- "rabbitmq channel established"
+		} else {
+			return
+		}
+
+		go consume(sctx)
+		status <- "rabbitmq consumer established"
+
+		// block call
+		if err := catchEvent(ctx); err != nil {
+			status <- fmt.Sprintf("amqp event occured: %s", err.Error())
+		}
+	}()
+
+	return status
 }
 
-func reChannel(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Printf("reChannel cleanup..\n")
-			close(cleanup["rechannel"])
-			return
-		case <-rmq.startChannel:
-			if rmq.rechan.Load().(bool) {
-				continue
-			} else {
-				rmq.createChannel()
-			}
-		}
+func catchEvent(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		// TODO: give better error message, e.g pid info
+		return errors.New("process ends")
+	case err, _ := <-connCloseError:
+		log.Logger.Warn(
+			"lost rabbitmq connection",
+			zap.String("error", err.Error()),
+		)
+
+		return err
+	case val, _ := <-channelCancelError:
+		// interestingly, the amqp library won't trigger
+		// this event iff we are not using amqp.Channel
+		// to declare the queue, which is, auh, easier
+		// for us to handle.
+		log.Logger.Warn(
+			"lost rabbitmq channel",
+			zap.String("error", val),
+		)
+
+		return errors.New(val)
 	}
+
+	return nil
 }
 
-func catchAmqpEvent(ctx context.Context) {
-	// Only rmq.startConnection <- struct{}{} can be called on receiving
-	// event from the library.
-	// Try to use other channel would cause dead lock.
-	// By design there's only single entry for the chain reaction.
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Printf("catchChannelEvent cleanup..\n")
-			close(cleanup["catchevent"])
-			return
-		case err, notclosed := <-rmq.connCloseError:
-			fmt.Printf("Connection's gone: %v connCloseError len: %v\n",
-				err, len(rmq.connCloseError))
-
-			// channel closed by library
-			if !notclosed {
-				rmq.connCloseError = make(chan *amqp.Error)
-				rmq.startConnection <- struct{}{}
-			}
-
-		case val, _ := <-rmq.chanCancelError:
-			// Will be notified iff queue master node is dead due to
-			// channel.Consume is called.
-			// i.e publisher side will not be notified with this error.
-
-			// chanCancelError is closed by the library.
-			fmt.Printf("Channel's gone :%v chanCancelError len: %v\n",
-				val, len(rmq.chanCancelError))
-
-			rmq.chanCancelError = make(chan string)
-			rmq.startConnection <- struct{}{}
-		case ret, _ := <-rmq.chanReturnError:
-			// chanReturnError is closed by the library.
-			fmt.Printf("Channel's Publish Return error:%v "+
-				"chanReturnError len: %v\n",
-				ret, len(rmq.chanReturnError))
-
-			rmq.chanReturnError = make(chan amqp.Return)
-			rmq.startConnection <- struct{}{}
-		}
+// rmqConnect creates amqp connection
+func createConnect() error {
+	amqpURL := amqp.URI{
+		Scheme:   "amqp",
+		Host:     rmqCfg.Host,
+		Username: rmqCfg.Username,
+		Password: "XXXXX",
+		Port:     rmqCfg.Port,
+		Vhost:    rmqCfg.Vhost,
 	}
+
+	log.Logger.Info(
+		"amqp connect URL",
+		zap.String("amqp", amqpURL.String()),
+	)
+
+	amqpURL.Password = rmqCfg.Password
+
+	// tcp connection timeout in 3 seconds.
+	myconn, err := amqp.DialConfig(
+		amqpURL.String(),
+		amqp.Config{
+			Vhost: rmqCfg.Vhost,
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.DialTimeout(network, addr, 3*time.Second)
+			},
+			Heartbeat: 10 * time.Second,
+			Locale:    "en_US"},
+	)
+	if err != nil {
+		log.Logger.Warn(
+			"Opening amqp connection failed",
+			zap.String("error", err.Error()),
+		)
+
+		return err
+	}
+
+	rmqConnection = myconn
+	connCloseError = make(chan *amqp.Error)
+	rmqConnection.NotifyClose(connCloseError)
+	return nil
+}
+
+// rmqChannel creates amqp channel
+func createChannel() error {
+	myChannel, err := rmqConnection.Channel()
+	if err != nil {
+		log.Logger.Warn(
+			"create amqp channel failed",
+			zap.String("error", err.Error()),
+		)
+
+		return err
+	}
+
+	rmqChannel = myChannel
+
+	// These can be sent from the server when a queue is deleted or
+	// when consuming from a mirrored queue where the master has just failed
+	// (and was moved to another node).
+	channelCancelError = make(chan string)
+	rmqChannel.NotifyCancel(channelCancelError)
+
+	return nil
 }
 
 func consume(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-rmq.canConsume:
-			if rmq.consumeCallbackFunc != nil {
-				rmq.consumeCallbackFunc(rmq)
-			}
-		}
-	}
-}
-
-func createConnect() {
-	rmq.reconn.Store(true)
-
-	runner := func() {
-		url := fmt.Sprintf("amqp://%s:%s@%s:%d/",
-			rmq.user, rmq.passwd, rmq.host, rmq.port)
-
-		fmt.Printf("Opening Connection(host=%s, username=%s, port=%d, queue=%s)\n",
-			rmq.host, rmq.user, rmq.port, rmq.queueName)
-
-		connection, err := amqp.Dial(url)
-
-		if err != nil {
-			fmt.Printf("Opening Connection(queue=%s) failed: %v\n",
-				rmq.queueName, err)
-
-			fmt.Printf("Wait %d seconds to reconnect...\n", rmq.reconnWait)
-			time.Sleep(time.Duration(rmq.reconnWait) * time.Second)
-
-			rmq.reconn.Store(false)
-			rmq.startConnection <- struct{}{}
-
-			fmt.Printf("Dial error: %v\n", err)
-			return
-		}
-
-		rmq.Connection = connection
-		rmq.Connection.NotifyClose(rmq.connCloseError)
-		rmq.startChannel <- struct{}{}
-
-		fmt.Println("Connection ready...")
-
-		rmq.reconn.Store(false)
-	}
-
-	go runner()
-}
-
-func createChannel() {
-	rmq.rechan.Store(true)
-
-	runner := func() {
-		channel, err := rmq.Connection.Channel()
-		if err != nil {
-			// If there's no connection, stops.
-			fmt.Printf("Get Channel error: %v\n", err)
-			return
-		}
-
-		rmq.Channel = channel
-
-		//Get the queue
-		_, err = rmq.Channel.QueueDeclare(
-			rmq.queueName,
-			rmq.durable, // True: the queue will survive a broker restart
-			false,       // delete when unused
-			false,       // exclusive
-			false,       // noWait
-			nil,         // arguments
+	if err := consumeHandle(ctx, rmqChannel); err != nil {
+		log.Logger.Error(
+			"queue handler error",
+			zap.String("error", err.Error()),
 		)
-
-		if err != nil {
-			// If queue Master dead and there's no HA, QueueDeclare fails.
-			fmt.Printf("QueueDeclare(queue=%s) failed: %v\n", rmq.queueName, err)
-			_ = rmq.Channel.Close()
-
-			fmt.Printf("Wait %d seconds to rechannel...\n", rmq.rechanWait)
-			time.Sleep(time.Duration(rmq.rechanWait) * time.Second)
-
-			rmq.rechan.Store(false)
-			rmq.startChannel <- struct{}{}
-			return
-		}
-
-		if rmq.exchange != "" {
-			// ExchangeDeclare
-			err = rmq.Channel.ExchangeDeclare(
-				rmq.exchange,
-				rmq.exchangeType,
-				true,  // durable
-				true,  // auto-delete
-				false, // internal
-				false, // nowait, wait for confirmation from server
-				nil)   // amqp.Table
-
-			// Terminate program if ExchangeDeclare failed.
-			if err != nil {
-				fmt.Printf("ExchangeDeclare error: %v\n", err)
-				p, _ := os.FindProcess(os.Getpid())
-				_ = p.Signal(syscall.SIGQUIT)
-				return
-			}
-
-			var pkey string
-			if rmq.mode == debugC {
-				pkey = rmq.listeningQueue
-			} else {
-				pkey = rmq.queueName
-			}
-
-			// QueueBind
-			err = rmq.Channel.QueueBind(
-				rmq.queueName, // queue name
-				pkey,
-				rmq.exchange, // exchange name
-				false,        // nowait, wait for confirmation from server
-				nil)
-
-			// Terminate program if QueueBind failed.
-			if err != nil {
-				fmt.Printf("QueueBind error: %v", err)
-				p, _ := os.FindProcess(os.Getpid())
-				_ = p.Signal(syscall.SIGQUIT)
-				return
-			}
-
-			// ExchangeBind for 'debug' mode
-			if rmq.mode == debugC {
-				err = rmq.Channel.ExchangeBind(
-					rmq.exchange,
-					rmq.listeningQueue,
-					rmq.listeningExchange,
-					false, // nowait, wait for confirmation from server
-					nil)   // amqp.Table
-
-				if err != nil {
-					fmt.Printf("ExchangeBind error: %v\n", err)
-					p, _ := os.FindProcess(os.Getpid())
-					_ = p.Signal(syscall.SIGQUIT)
-					return
-				}
-			}
-
-		}
-
-		// Register callback only after Exchange And Queue binding done.
-		rmq.Channel.NotifyCancel(rmq.chanCancelError)
-		rmq.Channel.NotifyReturn(rmq.chanReturnError)
-
-		if rmq.mode != publishC {
-			rmq.canConsume <- struct{}{}
-		}
-
-		fmt.Println("Channel ready...")
-
-		rmq.rechan.Store(false)
-		return
 	}
-
-	go runner()
 }

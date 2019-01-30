@@ -1,14 +1,8 @@
 package log
 
 import (
-	"fmt"
-	"os"
-	"sync"
-
-	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
-
-var once sync.Once
 
 // Logger zap logger
 var Logger appLogger
@@ -17,37 +11,12 @@ func init() {
 	initLogger()
 }
 
-// Sync flushes zap log IO.
+// Sync flushes zap log IO
 func Sync() {
-	logger.Sync()
+	Logger.Sync()
 }
 
-func initLogger() {
-	initLogger := func() {
-		// default log level set to 'info'
-		atom := zap.NewAtomicLevelAt(zap.InfoLevel)
-
-		config := zap.Config{
-			Level:       atom,
-			Development: false,
-			Sampling: &zap.SamplingConfig{
-				Initial:    100,
-				Thereafter: 100,
-			},
-			Encoding:         "json", // console, json, toml
-			EncoderConfig:    zap.NewProductionEncoderConfig(),
-			OutputPaths:      []string{"stderr"},
-			ErrorOutputPaths: []string{"stderr"},
-		}
-
-		mylogger, err := config.Build()
-		if err != nil {
-			fmt.Printf("Initialize zap logger error: %v", err)
-			os.Exit(1)
-		}
-
-		logger = appLogger{mylogger, &atom}
-	}
-
-	once.Do(initLogger)
+// SetLevel sets the logger level
+func SetLevel(l zapcore.Level) {
+	Logger.atom.SetLevel(l)
 }
