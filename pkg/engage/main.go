@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var serviceName = "engage"
+
 func fakeHandle1(ctx context.Context, channel *amqp.Channel) error {
 	deliveries, err := channel.Consume(
 		"cbs_queue_1",
@@ -133,6 +135,7 @@ func Start() {
 
 	log.Logger.Info(
 		"application ends",
+		zap.String("service", serviceName),
 		zap.String(
 			"wait_time",
 			(time.Duration(10)*time.Second).String()),

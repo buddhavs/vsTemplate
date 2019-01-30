@@ -23,7 +23,9 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 		defer func() {
 			if reconnect {
 				log.Logger.Info(
-					"re-establish rabbitmq connection",
+					"re-establish connection",
+					zap.String("service", serviceName),
+					zap.String("uuid", rmq.uuid),
 					zap.String(
 						"wait_time",
 						(time.Duration(rmq.rmqCfg.Wait)*time.Second).String()),
@@ -64,16 +66,21 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
+		log.Logger.Info(
+			"application ends",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
+		)
+
 		return retryError{
-			fmt.Errorf(
-				"application ends, cleanup connection loop. rmq uuid: %v",
-				rmq.uuid,
-			),
+			errors.New("application ends, cleanup connection loop"),
 			false,
 		}
 	case err, _ := <-rmq.connCloseError:
 		log.Logger.Warn(
-			"lost rabbitmq connection",
+			"lost connection",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
 			zap.String("error", err.Error()),
 		)
 
@@ -87,7 +94,9 @@ func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 		// to declare the queue, which is, auh, easier
 		// for us to handle.
 		log.Logger.Warn(
-			"lost rabbitmq channel",
+			"lost channel",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
 			zap.String("error", val),
 		)
 
@@ -110,8 +119,10 @@ func (rmq *RmqStruct) createConnect() error {
 	}
 
 	log.Logger.Info(
-		"amqp connect URL",
-		zap.String("amqp", amqpURL.String()),
+		"connect URL",
+		zap.String("service", serviceName),
+		zap.String("uuid", rmq.uuid),
+		zap.String("url", amqpURL.String()),
 	)
 
 	amqpURL.Password = rmq.rmqCfg.Password
@@ -129,7 +140,9 @@ func (rmq *RmqStruct) createConnect() error {
 	)
 	if err != nil {
 		log.Logger.Warn(
-			"Opening amqp connection failed",
+			"open connection failed",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
 			zap.String("error", err.Error()),
 		)
 
@@ -147,7 +160,9 @@ func (rmq *RmqStruct) createChannel() error {
 	myChannel, err := rmq.rmqConnection.Channel()
 	if err != nil {
 		log.Logger.Warn(
-			"create amqp channel failed",
+			"create channel failed",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
 			zap.String("error", err.Error()),
 		)
 
@@ -168,7 +183,9 @@ func (rmq *RmqStruct) createChannel() error {
 func (rmq *RmqStruct) consume(ctx context.Context) {
 	if err := rmq.consumeHandle(ctx, rmq.rmqChannel); err != nil {
 		log.Logger.Warn(
-			"queue handler error",
+			"queue consume error",
+			zap.String("service", serviceName),
+			zap.String("uuid", rmq.uuid),
 			zap.String("error", err.Error()),
 		)
 	}

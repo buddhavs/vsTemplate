@@ -10,8 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var serviceName = "rabbitmq"
+
 // NewRmq creates new rabbitmq instance
 func NewRmq(cfg config.Config, queue string) *RmqStruct {
+	// TODO: log using config version.
 	// validate it's value.
 	rs := RmqStruct{
 		uuid:     uuid.New().String(),
@@ -30,7 +33,8 @@ func (rmq *RmqStruct) RegisterConsumeHandle(handle ConsumeHandle) {
 // Run starts rabbitmq service
 func (rmq *RmqStruct) Run(ctx context.Context) {
 	log.Logger.Info(
-		"rabbitmq service starts",
+		"service starts",
+		zap.String("service", serviceName),
 		zap.String("uuid", rmq.uuid),
 	)
 
@@ -41,7 +45,9 @@ func (rmq *RmqStruct) Run(ctx context.Context) {
 		default:
 			for s := range rmq.start(ctx) {
 				log.Logger.Info(
-					"rabbitmq status",
+					"status",
+					zap.String("service", serviceName),
+					zap.String("uuid", rmq.uuid),
 					zap.String("status", s),
 				)
 			}
