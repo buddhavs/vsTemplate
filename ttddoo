@@ -2,6 +2,9 @@
 
 2. rabbitmq finish / burst test / reconnection test
 
+3. validate struct value.
+4. config versioning https://github.com/hashicorp/go-version
+
 3. trace enabled
 
 3. rqm u_test

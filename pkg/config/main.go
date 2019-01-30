@@ -1,19 +1,19 @@
 package config
 
 // GetRmqConnectionConfig returns rabbitmq cluster host
-func (cfg Config) GetRmqConnectionConfig() ConnectionType {
+func (cfg Config) GetRmqConnectionConfig() RmqConnectionType {
 	return cfg.rmqConnection
 }
 
 // GetRmqQueueConfig returns rabbitmq cluster host
-func (cfg Config) GetRmqQueueConfig(queue string) QueueType {
+func (cfg Config) GetRmqQueueConfig(queue string) RmqQueueType {
 	return cfg.rmqQueueMap[queue]
 }
 
 // Run returns config
 func Run() Config {
 	return Config{
-		rmqConnection: ConnectionType{
+		rmqConnection: RmqConnectionType{
 			Username: "jsc",
 			Password: "qweasdzxc123",
 			Host:     "localhost",
@@ -21,8 +21,8 @@ func Run() Config {
 			Vhost:    "/",
 			Wait:     3,
 		},
-		rmqQueueMap: map[string]QueueType{
-			"cbs_queue_1": QueueType{
+		rmqQueueMap: map[string]RmqQueueType{
+			"cbs_queue_1": RmqQueueType{
 				QueueName: "cbs_queue_1",
 				Consumer:  "cbs_queue_1",
 				AutoAck:   false,
@@ -30,7 +30,7 @@ func Run() Config {
 				NoLocal:   false,
 				NoWait:    false,
 			},
-			"cbs_queue_2": QueueType{
+			"cbs_queue_2": RmqQueueType{
 				QueueName: "cbs_queue_2",
 				Consumer:  "cbs_queue_2",
 				AutoAck:   false,

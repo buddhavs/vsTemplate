@@ -6,34 +6,32 @@ import (
 	"vstmp/pkg/config"
 	"vstmp/pkg/log"
 
-	"github.com/streadway/amqp"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
-	// "go.uber.org/zap"
 )
 
-var (
-	rmqConnection      *amqp.Connection
-	rmqChannel         *amqp.Channel
-	connCloseError     chan *amqp.Error
-	channelCancelError chan string
-	consumeHandle      ConsumeHandle
-)
+// NewRmq creates new rabbitmq instance
+func NewRmq(cfg config.Config, queue string) *RmqStruct {
+	// validate it's value.
+	rs := RmqStruct{
+		uuid:     uuid.New().String(),
+		rmqCfg:   cfg.GetRmqConnectionConfig(),
+		rmqQueue: cfg.GetRmqQueueConfig(queue),
+	}
 
-// Setup sets rabbitmq configuration
-func Setup(cfg config.Config) {
-	rmqCfg = cfg.GetRmqConnectionConfig()
-	rmqQueue = cfg.GetRmqQueueConfig("cbs_queue_1")
+	return &rs
 }
 
 // RegisterConsumeHandle register consumer's handle
-func RegisterConsumeHandle(handle ConsumeHandle) {
-	consumeHandle = handle
+func (rmq *RmqStruct) RegisterConsumeHandle(handle ConsumeHandle) {
+	rmq.consumeHandle = handle
 }
 
 // Run starts rabbitmq service
-func Run(ctx context.Context) {
+func (rmq *RmqStruct) Run(ctx context.Context) {
 	log.Logger.Info(
 		"rabbitmq service starts",
+		zap.String("uuid", rmq.uuid),
 	)
 
 	for {
@@ -41,7 +39,7 @@ func Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			for s := range start(ctx) {
+			for s := range rmq.start(ctx) {
 				log.Logger.Info(
 					"rabbitmq status",
 					zap.String("status", s),
@@ -49,4 +47,5 @@ func Run(ctx context.Context) {
 			}
 		}
 	}
+
 }

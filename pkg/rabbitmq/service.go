@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func start(ctx context.Context) <-chan string {
+func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 	status := make(chan string)
 
 	go func() {
@@ -24,10 +24,10 @@ func start(ctx context.Context) <-chan string {
 				"re-establish rabbitmq connection",
 				zap.String(
 					"wait_time",
-					(time.Duration(rmqCfg.Wait)*time.Second).String()),
+					(time.Duration(rmq.rmqCfg.Wait)*time.Second).String()),
 			)
 
-			time.Sleep(time.Duration(rmqCfg.Wait) * time.Second)
+			time.Sleep(time.Duration(rmq.rmqCfg.Wait) * time.Second)
 
 			// cleanup consumer goroutine
 			cancel()
@@ -36,24 +36,24 @@ func start(ctx context.Context) <-chan string {
 		}()
 
 		// create rabbitmq connection
-		if err := createConnect(); err == nil {
+		if err := rmq.createConnect(); err == nil {
 			status <- "rabbitmq connection established"
 		} else {
 			return
 		}
 
 		// create rabbitmq channel
-		if err := createChannel(); err == nil {
+		if err := rmq.createChannel(); err == nil {
 			status <- "rabbitmq channel established"
 		} else {
 			return
 		}
 
-		go consume(sctx)
+		go rmq.consume(sctx)
 		status <- "rabbitmq consumer established"
 
 		// block call
-		if err := catchEvent(ctx); err != nil {
+		if err := rmq.catchEvent(ctx); err != nil {
 			status <- fmt.Sprintf("amqp event occured: %s", err.Error())
 		}
 	}()
@@ -61,19 +61,18 @@ func start(ctx context.Context) <-chan string {
 	return status
 }
 
-func catchEvent(ctx context.Context) error {
+func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
-		// TODO: give better error message, e.g pid info
-		return errors.New("process ends")
-	case err, _ := <-connCloseError:
+		return fmt.Errorf("application ends, cleanup connection loop. rmq uuid: %v", rmq.uuid)
+	case err, _ := <-rmq.connCloseError:
 		log.Logger.Warn(
 			"lost rabbitmq connection",
 			zap.String("error", err.Error()),
 		)
 
 		return err
-	case val, _ := <-channelCancelError:
+	case val, _ := <-rmq.channelCancelError:
 		// interestingly, the amqp library won't trigger
 		// this event iff we are not using amqp.Channel
 		// to declare the queue, which is, auh, easier
@@ -90,14 +89,14 @@ func catchEvent(ctx context.Context) error {
 }
 
 // rmqConnect creates amqp connection
-func createConnect() error {
+func (rmq *RmqStruct) createConnect() error {
 	amqpURL := amqp.URI{
 		Scheme:   "amqp",
-		Host:     rmqCfg.Host,
-		Username: rmqCfg.Username,
+		Host:     rmq.rmqCfg.Host,
+		Username: rmq.rmqCfg.Username,
 		Password: "XXXXX",
-		Port:     rmqCfg.Port,
-		Vhost:    rmqCfg.Vhost,
+		Port:     rmq.rmqCfg.Port,
+		Vhost:    rmq.rmqCfg.Vhost,
 	}
 
 	log.Logger.Info(
@@ -105,13 +104,13 @@ func createConnect() error {
 		zap.String("amqp", amqpURL.String()),
 	)
 
-	amqpURL.Password = rmqCfg.Password
+	amqpURL.Password = rmq.rmqCfg.Password
 
 	// tcp connection timeout in 3 seconds.
 	myconn, err := amqp.DialConfig(
 		amqpURL.String(),
 		amqp.Config{
-			Vhost: rmqCfg.Vhost,
+			Vhost: rmq.rmqCfg.Vhost,
 			Dial: func(network, addr string) (net.Conn, error) {
 				return net.DialTimeout(network, addr, 3*time.Second)
 			},
@@ -127,15 +126,15 @@ func createConnect() error {
 		return err
 	}
 
-	rmqConnection = myconn
-	connCloseError = make(chan *amqp.Error)
-	rmqConnection.NotifyClose(connCloseError)
+	rmq.rmqConnection = myconn
+	rmq.connCloseError = make(chan *amqp.Error)
+	rmq.rmqConnection.NotifyClose(rmq.connCloseError)
 	return nil
 }
 
 // rmqChannel creates amqp channel
-func createChannel() error {
-	myChannel, err := rmqConnection.Channel()
+func (rmq *RmqStruct) createChannel() error {
+	myChannel, err := rmq.rmqConnection.Channel()
 	if err != nil {
 		log.Logger.Warn(
 			"create amqp channel failed",
@@ -145,20 +144,20 @@ func createChannel() error {
 		return err
 	}
 
-	rmqChannel = myChannel
+	rmq.rmqChannel = myChannel
 
 	// These can be sent from the server when a queue is deleted or
 	// when consuming from a mirrored queue where the master has just failed
 	// (and was moved to another node).
-	channelCancelError = make(chan string)
-	rmqChannel.NotifyCancel(channelCancelError)
+	rmq.channelCancelError = make(chan string)
+	rmq.rmqChannel.NotifyCancel(rmq.channelCancelError)
 
 	return nil
 }
 
-func consume(ctx context.Context) {
-	if err := consumeHandle(ctx, rmqChannel); err != nil {
-		log.Logger.Error(
+func (rmq *RmqStruct) consume(ctx context.Context) {
+	if err := rmq.consumeHandle(ctx, rmq.rmqChannel); err != nil {
+		log.Logger.Warn(
 			"queue handler error",
 			zap.String("error", err.Error()),
 		)

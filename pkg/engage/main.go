@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"syscall"
+	"time"
 
 	cfg "vstmp/pkg/config"
 	"vstmp/pkg/log"
 	rmq "vstmp/pkg/rabbitmq"
+	"vstmp/pkg/signal"
 
 	"github.com/streadway/amqp"
+	"go.uber.org/zap"
 )
 
 func fakeHandle1(ctx context.Context, channel *amqp.Channel) error {
@@ -26,9 +30,18 @@ func fakeHandle1(ctx context.Context, channel *amqp.Channel) error {
 		return errors.New("channel consume creating failed")
 	}
 
-	for d := range deliveries {
-		fmt.Printf("%s\n", string(d.Body))
-		d.Ack(false)
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("application ends")
+		case d, ok := <-deliveries:
+			if ok {
+				fmt.Printf("%s\n", string(d.Body))
+				d.Ack(false)
+			} else {
+				break
+			}
+		}
 	}
 
 	return errors.New("delivery channel closed")
@@ -48,9 +61,18 @@ func fakeHandle2(ctx context.Context, channel *amqp.Channel) error {
 		return errors.New("channel consume creating failed")
 	}
 
-	for d := range deliveries {
-		fmt.Printf("%s\n", string(d.Body))
-		d.Ack(false)
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("application ends")
+		case d, ok := <-deliveries:
+			if ok {
+				fmt.Printf("%s\n", string(d.Body))
+				d.Ack(false)
+			} else {
+				break
+			}
+		}
 	}
 
 	return errors.New("delivery channel closed")
@@ -60,11 +82,32 @@ func fakeHandle2(ctx context.Context, channel *amqp.Channel) error {
 func Start() {
 	defer log.Sync()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	rmq.Setup(cfg.Run())
-	rmq.RegisterConsumeHandle(fakeHandle1)
+	quitSig := func() {
+		cancel()
+	}
 
-	// block call
-	rmq.Run(ctx)
+	signal.RegisterHandler(syscall.SIGQUIT, quitSig)
+	signal.RegisterHandler(syscall.SIGTERM, quitSig)
+	signal.RegisterHandler(syscall.SIGINT, quitSig)
+
+	r1 := rmq.NewRmq(cfg.Run(), "cbs_queue_1")
+	r1.RegisterConsumeHandle(fakeHandle1)
+	go r1.Run(ctx)
+
+	r2 := rmq.NewRmq(cfg.Run(), "cbs_queue_2")
+	r2.RegisterConsumeHandle(fakeHandle1)
+	go r2.Run(ctx)
+
+	<-ctx.Done()
+
+	log.Logger.Info(
+		"application ends",
+		zap.String(
+			"wait_time",
+			(time.Duration(10)*time.Second).String()),
+	)
+
+	time.Sleep(time.Duration(10) * time.Second)
 }

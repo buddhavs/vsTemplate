@@ -1,17 +1,17 @@
 package signal
 
 import (
-	"context"
 	"os"
 	"os/signal"
 )
 
 var handleMap = make(map[string]handleSlice)
 
+// RegisterHandler registers signal disposition
 // Not a concurrent safe function.
-func registerHandler(
+func RegisterHandler(
 	sig os.Signal,
-	handler ...func(context.Context)) {
+	handler ...func()) {
 
 	if hslice, ok := handleMap[sig.String()]; ok {
 		handleMap[sig.String()] = append(hslice, handler...)
@@ -20,12 +20,13 @@ func registerHandler(
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, sig)
+	handleMap[sig.String()] = append(handleSlice{}, handler...)
 
 	go func() {
 		for {
 			<-sigchan
 
-			for h := range handleMap[sig.String()] {
+			for _, h := range handleMap[sig.String()] {
 				go h()
 			}
 		}
