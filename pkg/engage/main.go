@@ -43,8 +43,6 @@ func fakeHandle1(ctx context.Context, channel *amqp.Channel) error {
 			}
 		}
 	}
-
-	return errors.New("delivery channel closed")
 }
 
 func fakeHandle2(ctx context.Context, channel *amqp.Channel) error {
@@ -74,8 +72,6 @@ func fakeHandle2(ctx context.Context, channel *amqp.Channel) error {
 			}
 		}
 	}
-
-	return errors.New("delivery channel closed")
 }
 
 // Start starts the program.

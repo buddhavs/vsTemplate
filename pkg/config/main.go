@@ -22,7 +22,7 @@ func Run() Config {
 			Wait:     3,
 		},
 		rmqQueueMap: map[string]RmqQueueType{
-			"cbs_queue_1": RmqQueueType{
+			"cbs_queue_1": {
 				QueueName: "cbs_queue_1",
 				Consumer:  "cbs_queue_1",
 				AutoAck:   false,
@@ -30,7 +30,7 @@ func Run() Config {
 				NoLocal:   false,
 				NoWait:    false,
 			},
-			"cbs_queue_2": RmqQueueType{
+			"cbs_queue_2": {
 				QueueName: "cbs_queue_2",
 				Consumer:  "cbs_queue_2",
 				AutoAck:   false,

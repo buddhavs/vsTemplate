@@ -84,8 +84,6 @@ func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 
 		return errors.New(val)
 	}
-
-	return nil
 }
 
 // rmqConnect creates amqp connection
