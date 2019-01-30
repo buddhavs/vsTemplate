@@ -1,0 +1,14 @@
+2. rabbitmq burst test
+
+3. validates structs
+config versioning https://github.com/hashicorp/go-version
+
+4. trace enabled
+
+5. k8s probe
+
+6. unit test only on onTap logic for now.
+
+7. actors / burst test, scale out/scale in
+
+8. actor trace
