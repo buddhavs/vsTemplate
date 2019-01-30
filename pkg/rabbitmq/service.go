@@ -18,16 +18,19 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 
 	go func() {
 		sctx, cancel := context.WithCancel(ctx)
+		var reconnect = true
 
 		defer func() {
-			log.Logger.Info(
-				"re-establish rabbitmq connection",
-				zap.String(
-					"wait_time",
-					(time.Duration(rmq.rmqCfg.Wait)*time.Second).String()),
-			)
+			if reconnect {
+				log.Logger.Info(
+					"re-establish rabbitmq connection",
+					zap.String(
+						"wait_time",
+						(time.Duration(rmq.rmqCfg.Wait)*time.Second).String()),
+				)
 
-			time.Sleep(time.Duration(rmq.rmqCfg.Wait) * time.Second)
+				time.Sleep(time.Duration(rmq.rmqCfg.Wait) * time.Second)
+			}
 
 			// cleanup consumer goroutine
 			cancel()
@@ -36,26 +39,24 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 		}()
 
 		// create rabbitmq connection
-		if err := rmq.createConnect(); err == nil {
-			status <- "rabbitmq connection established"
-		} else {
+		if err := rmq.createConnect(); err != nil {
 			return
 		}
+		status <- "rabbitmq connection established"
 
 		// create rabbitmq channel
-		if err := rmq.createChannel(); err == nil {
-			status <- "rabbitmq channel established"
-		} else {
+		if err := rmq.createChannel(); err != nil {
 			return
 		}
+		status <- "rabbitmq channel established"
 
 		go rmq.consume(sctx)
 		status <- "rabbitmq consumer established"
 
-		// block call
-		if err := rmq.catchEvent(ctx); err != nil {
-			status <- fmt.Sprintf("amqp event occurred: %s", err.Error())
-		}
+		err := rmq.catchEvent(ctx)
+		re := err.(retryError)
+		reconnect = re.reconnect
+		status <- fmt.Sprintf("amqp event occurred: %s", err.Error())
 	}()
 
 	return status
@@ -64,14 +65,23 @@ func (rmq *RmqStruct) start(ctx context.Context) <-chan string {
 func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("application ends, cleanup connection loop. rmq uuid: %v", rmq.uuid)
+		return retryError{
+			fmt.Errorf(
+				"application ends, cleanup connection loop. rmq uuid: %v",
+				rmq.uuid,
+			),
+			false,
+		}
 	case err, _ := <-rmq.connCloseError:
 		log.Logger.Warn(
 			"lost rabbitmq connection",
 			zap.String("error", err.Error()),
 		)
 
-		return err
+		return retryError{
+			err,
+			true,
+		}
 	case val, _ := <-rmq.channelCancelError:
 		// interestingly, the amqp library won't trigger
 		// this event iff we are not using amqp.Channel
@@ -82,7 +92,10 @@ func (rmq *RmqStruct) catchEvent(ctx context.Context) error {
 			zap.String("error", val),
 		)
 
-		return errors.New(val)
+		return retryError{
+			errors.New(val),
+			true,
+		}
 	}
 }
 

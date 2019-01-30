@@ -22,3 +22,8 @@ type RmqStruct struct {
 	channelCancelError chan string
 	consumeHandle      ConsumeHandle
 }
+
+type retryError struct {
+	error
+	reconnect bool
+}
