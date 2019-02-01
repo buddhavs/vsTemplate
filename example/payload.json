@@ -1,6 +1,0 @@
-{
-    "kind": "ontap",
-    "action": "backup",
-    "type": "adhoc",
-    "message": "adhoc_fun",
-}

@@ -9,6 +9,9 @@ var Logger appLogger
 
 func init() {
 	initLogger()
+
+	// default debug level
+	SetLevel(zapcore.DebugLevel)
 }
 
 // Sync flushes zap log IO

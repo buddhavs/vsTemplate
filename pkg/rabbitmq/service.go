@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var serviceName = "rabbitmq"
+const serviceName = "rabbitmq"
 
 // defaultHandle is a template for handler writers
 func defaultHandle(ctx context.Context, channel *amqp.Channel) error {

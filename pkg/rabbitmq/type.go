@@ -15,7 +15,7 @@ type ConsumeHandle func(context.Context, *amqp.Channel) error
 type RmqStruct struct {
 	ctx                context.Context
 	uuid               string
-	rmqCfg             config.RmqConnectionType
+	rmqCfg             config.RmqConnection
 	rmqConnection      *amqp.Connection
 	rmqChannel         *amqp.Channel
 	connCloseError     chan *amqp.Error

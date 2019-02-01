@@ -5,8 +5,8 @@ import (
 )
 
 type (
-	// RmqConnectionType config for amqp connection
-	RmqConnectionType struct {
+	// RmqConnection config for amqp connection
+	RmqConnection struct {
 		Username string `validate:"required"`
 		Password string `validate:"required"`
 		Host     string `validate:"required"`
@@ -15,8 +15,8 @@ type (
 		Wait     int    `validate:"isdefault"`
 	}
 
-	// RmqQueueType config for consuming queue
-	RmqQueueType struct {
+	// RmqQueue config for consuming queue
+	RmqQueue struct {
 		QueueName string `validate:"required"`
 		// Consumer is used for active Cancel consumer
 		Consumer  string `validate:"required"`
@@ -32,7 +32,7 @@ type (
 	Config struct {
 		// TODO: use https://github.com/hashicorp/go-version
 		version       string // v0.0.0
-		rmqConnection RmqConnectionType
-		rmqQueueMap   map[string]RmqQueueType
+		rmqConnection RmqConnection
+		rmqQueueMap   map[string]RmqQueue
 	}
 )

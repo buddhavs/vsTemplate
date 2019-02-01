@@ -5,11 +5,11 @@ import (
 	"errors"
 
 	"vstmp/pkg/actor"
-	"vstmp/pkg/log"
 
 	"github.com/streadway/amqp"
-	"go.uber.org/zap"
-	// https://github.com/uber-go/ratelimit
+	// TODO:
+	// using ratelimit with https://github.com/uber-go/ratelimit
+	// if necessary
 )
 
 // ontapConsumer is the consumer for ontap
@@ -28,22 +28,19 @@ func ontapConsumer(ctx context.Context, channel *amqp.Channel) error {
 		return errors.New("channel consume creating failed")
 	}
 
-	// create Kind actor here
-	log.Logger.Info(
-		"kind actor created",
-		zap.String("service", serviceName),
-		zap.String("actor", actor.KindActor),
-	)
-	actor, cancel := actor.NewActor(ctx, 10, kindActor)
+	actorK, cancelK := actor.GetActor(actor.KindActor)
 
 	for {
 		select {
 		case <-ctx.Done():
-			cancel()
+			cancelK()
 			return errors.New("application ends")
 		case d, ok := <-deliveries:
 			if ok {
-				actor <- d.Body
+				// passing down the byte slice which is a more
+				// compact data structure than string,
+				// thus do not decoding the message here
+				actorK <- d.Body
 				d.Ack(false)
 			} else {
 				break

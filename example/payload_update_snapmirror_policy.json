@@ -1,0 +1,30 @@
+{
+    "kind": "ontap",
+    "action": "update",
+    "type": "policy",
+    "payload": {
+      "ownerId": "FB821149-4F9F-EB78-D43B-BB8C5B47FE5C",
+      "ontapIP": "10.193.56.150",
+      "username": "guest",
+      "password": "guest",
+      "vserverName": "cbs_svm",
+      "volumeName": "vol1_src",
+      "description": "Updated description for snapmirror policy.",
+      "snapmirrorPolicy": {
+        "enabled": false,
+        "delete_all_snapshots": false,
+        "daily-schedule": {
+          "snapshotsToKeep": 1,
+          "snapmirrorLabel": "sm_daily"
+        },
+        "weekly-schedule": {
+          "snapshotsToKeep": 1,
+          "snapmirrorLabel": "sm_weekly"
+        },
+        "monthly-schedule": {
+          "snapshotsToKeep": 1,
+          "snapmirrorLabel": "sm_monthly"
+        }
+      }
+    }
+}

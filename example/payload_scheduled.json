@@ -1,0 +1,29 @@
+{
+    "kind": "ontap",
+    "action": "backup",
+    "type": "schedule",
+    "payload": {
+      "ownerId": "FB821149-4F9F-EB78-D43B-BB8C5B47FE5C",
+      "ontapIP": "10.193.56.150",
+      "username": "guest",
+      "password": "guest",
+      "vserverName": "cbs_svm",
+      "volumeName": "vol1_src",
+      "fileSystemId": "622EE7E2-AFDD-536D-A337-012345678903",
+      "snapmirrorPolicy": {
+        "enabled": true,
+        "daily-schedule": {
+          "snapmirrorLabel": "sm_daily",
+          "snapshotsToKeep": 24
+        },
+        "weekly-schedule": {
+          "snapmirrorLabel": "sm_weekly",
+          "snapshotsToKeep": 7
+        },
+        "monthly-schedule": {
+          "snapmirrorLabel": "sm_monthly",
+          "snapshotsToKeep": 12
+        }
+      }
+    }
+}
