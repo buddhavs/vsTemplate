@@ -10,8 +10,8 @@ func (cfg Config) GetRmqQueueConfig(queue string) RmqQueueType {
 	return cfg.rmqQueueMap[queue]
 }
 
-// Run returns config
-func Run() Config {
+// GetConfig returns config
+func GetConfig() Config {
 	return Config{
 		rmqConnection: RmqConnectionType{
 			Username: "jsc",

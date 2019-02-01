@@ -13,6 +13,9 @@ import (
 	"go.uber.org/zap"
 )
 
+var serviceName = "rabbitmq"
+
+// defaultHandle is a template for handler writers
 func defaultHandle(ctx context.Context, channel *amqp.Channel) error {
 	log.Logger.Info(
 		"default rabbitmq consume handler",
@@ -137,7 +140,7 @@ func (rmq *RmqStruct) createConnect() error {
 
 	amqpURL.Password = rmq.rmqCfg.Password
 
-	// tcp connection timeout in 3 seconds.
+	// tcp connection timeout in 3 seconds
 	myconn, err := amqp.DialConfig(
 		amqpURL.String(),
 		amqp.Config{
@@ -183,7 +186,7 @@ func (rmq *RmqStruct) createChannel() error {
 
 	// These can be sent from the server when a queue is deleted or
 	// when consuming from a mirrored queue where the master has just failed
-	// (and was moved to another node).
+	// (and was moved to another node)
 	rmq.channelCancelError = make(chan string)
 	rmq.rmqChannel.NotifyCancel(rmq.channelCancelError)
 

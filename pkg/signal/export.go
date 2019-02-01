@@ -8,7 +8,7 @@ import (
 var handleMap = make(map[string]handleSlice)
 
 // RegisterHandler registers signal disposition
-// Not a concurrent safe function.
+// Not a concurrent safe function
 func RegisterHandler(
 	sig os.Signal,
 	handler ...func()) {

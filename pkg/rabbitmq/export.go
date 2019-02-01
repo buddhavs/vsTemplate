@@ -10,14 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-var serviceName = "rabbitmq"
-
 // NewRmq creates new rabbitmq instance
 // NewXxx always takes context as argument
 func NewRmq(ctx context.Context, cfg config.Config) (*RmqStruct, error) {
-	// TODO: log using config version.
+	// TODO:
+	// log using config version.
 	// validate it's value by calling cfg.ValidateRmq()
-	// return error
+	// return error if validate fails
 	rs := RmqStruct{
 		ctx:           ctx,
 		uuid:          uuid.New().String(),
