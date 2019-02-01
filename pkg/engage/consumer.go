@@ -44,7 +44,6 @@ func ontapConsumer(ctx context.Context, channel *amqp.Channel) error {
 		case d, ok := <-deliveries:
 			if ok {
 				actor <- d.Body
-				// fmt.Printf("%s\n", string(d.Body))
 				d.Ack(false)
 			} else {
 				break

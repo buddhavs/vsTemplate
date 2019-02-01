@@ -2,6 +2,9 @@ package engage
 
 import (
 	"context"
+
+	cfg "vstmp/pkg/config"
+	rmq "vstmp/pkg/rabbitmq"
 )
 
 var serviceName = "engage"
