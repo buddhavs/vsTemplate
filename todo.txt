@@ -4,7 +4,7 @@ https://www.rabbitmq.com/consumer-prefetch.html
 
 --
 2.
-Actors::
+Actors::(done)
 --
 Kind actor : dispatch action under this kind to next 'action' type actor.
 Action actor: Base on action type, dispatch to next 'type' actor.
