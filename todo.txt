@@ -1,14 +1,30 @@
-2. rabbitmq burst test
+1. rmq qos
+https://www.rabbitmq.com/consumer-prefetch.html
 
-3. validates structs
+2.
+Actors::
+--
+Kind actor : dispatch action under this kind to next 'action' type actor.
+Action actor: Base on action type, dispatch to next 'type' actor.
+Type actor: 'Cap' actor. If type actor's action needs to be monitored later on,
+    pass the message to the next 'Monitor' actor.
+
+Monitor actor: Monitor status.
+--
+Service actors::
+Engage actor: consume message from inbound IO (rmq in our case) and base on the
+    message kind dispatch to next actor.
+DB actor: Base on caller's request, dedicate request to next DB actor(update/read/delete/etc.)
+
+
+3. trace enabled
+
+
+4. k8s probe/metrics
+
+
+5. validates structs
 config versioning https://github.com/hashicorp/go-version
 
-4. trace enabled
-
-5. k8s probe
 
 6. unit test only on onTap logic for now.
-
-7. actors / burst test, scale out/scale in
-
-8. actor trace
