@@ -9,11 +9,14 @@ rmqctl debugging user issue
 --
 2.
 Actor should have:
-1. start time
-2. end time
-3. host information (host name, ip, k8s service label etc. zap log right away instead of
-pushing error to error actor for logging the message.)
-4. capacity information (number of default goroutines it supports)
+    1. start time
+    2. end time
+    3. host information (host name, ip, k8s service label etc. zap log right away instead of
+    pushing error to error actor for logging the message.)
+    4. capacity information (number of default goroutines it supports)
+    5. Cancel should remove the canceled actor from registry. // atomic
+
+
 
 2.1
 Message / payload should have Actors[address] in metadata, like route
