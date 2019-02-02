@@ -23,6 +23,14 @@ DB actor: Base on caller's request, dedicate request to next DB actor(update/rea
 
 
 --
+2.2
+Snapshot service:
+when process ends, snapshot the current status into DB.
+(sqlite?)
+
+
+
+--
 3. trace enabled
 
 
