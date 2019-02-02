@@ -11,5 +11,5 @@ func Start() {
 
 	actor := vsactor.NewActor(ctx, "fun~", 10, funnyActor)
 
-	actor.Send("Fun~~")
+	actor.Send("start~~")
 }

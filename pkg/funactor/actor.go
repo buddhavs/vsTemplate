@@ -3,7 +3,7 @@ package funactor
 import (
 	"context"
 	"fmt"
-	"time"
+	"math/rand"
 	vsactor "vstmp/pkg/actor"
 )
 
@@ -39,8 +39,6 @@ func futureActor(ctx context.Context, actor *vsactor.Actor) {
 }
 
 func funnyActor(ctx context.Context, actor *vsactor.Actor) {
-	var factor *vsactor.Actor
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -48,18 +46,14 @@ func funnyActor(ctx context.Context, actor *vsactor.Actor) {
 		case v := <-actor.Receive():
 			fmt.Printf("%v\n", v)
 
-			counter++
+			d, ok := v.(int)
 
-			if counter == 42 {
-				// give me a future!
-				factor = vsactor.NewActor(ctx, "future", 10, futureActor)
-				factor.Send(42)
-			}
-			actor.Send("received Fun! pass on~~")
-			if counter > 100 {
-				time.Sleep(10 * time.Second)
-				// self kill after receive the future :-)
-				fmt.Printf("give me my future result:-) %v", <-factor.Receive())
+			go func() {
+				actor.Send(rand.Intn(100))
+			}()
+
+			if ok && d == 42 {
+				fmt.Println("bye bye~")
 				actor.Cancel()
 			}
 		}
