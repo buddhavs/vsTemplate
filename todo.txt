@@ -1,40 +1,30 @@
 --
 1. rmq qos
 https://www.rabbitmq.com/consumer-prefetch.html
+rmqctl TLS support
+rmqctl prints out msg header
+rmqctl debugging user issue
 
 
 --
 2.
-Actors::(done)
---
-Kind actor : dispatch action under this kind to next 'action' type actor.
-Action actor: Base on action type, dispatch to next 'type' actor.
-Type actor: 'Cap' actor. If type actor's action needs to be monitored later on,
-    pass the message to the next 'Monitor' actor.
-
-Monitor actor: Monitor status.
-
-
---
-2.1
-Service actors::
-Engage actor: consume message from inbound IO (rmq in our case) and base on the
-    message kind dispatch to next actor.
-
-DB actor: Base on caller's request, dedicate request to next DB actor
-(update/read/delete/etc)
+Actor should have:
+1. start time
+2. end time
+3. host information (host name, ip, etc. zap log right away instead of
+pushing error to error actor for logging the message.)
+4. capacity information (number of default goroutines it supports)
 
 
 --
 2.2
 Snapshot service:
 when process ends, snapshot the current status into DB.
-(sqlite?)
+(sqlite, yes, sqlite should be used anyway)
 
 
 
 --
-***
 3. trace enabled
 
 
