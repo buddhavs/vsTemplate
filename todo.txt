@@ -11,13 +11,16 @@ rmqctl debugging user issue
 Actor should have:
 1. start time
 2. end time
-3. host information (host name, ip, etc. zap log right away instead of
+3. host information (host name, ip, k8s service label etc. zap log right away instead of
 pushing error to error actor for logging the message.)
 4. capacity information (number of default goroutines it supports)
 
+2.1
+Message / payload should have Actors[address] in metadata, like route
+modifying MAC address for next hop.
 
 --
-2.2
+3.
 Snapshot service:
 when process ends, snapshot the current status into DB.
 (sqlite, yes, sqlite should be used anyway)
@@ -25,20 +28,20 @@ when process ends, snapshot the current status into DB.
 
 
 --
-3. trace enabled
+4. trace enabled
 
 
 --
-4. k8s probe/metrics
+5. k8s probe/metrics
 
 
 --
-5. validates structs
+6. validates structs
 config versioning https://github.com/hashicorp/go-version
 
 
 --
-6. unit test only on onTap logic for now.
+7. unit test only on onTap logic for now.
 
 
 // ------------------------------------------------------------------
