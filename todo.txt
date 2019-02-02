@@ -18,6 +18,7 @@ Actor should have:
     6, Actor by default is stateless, if stateful, persists it's state which
         can be loaded through Restart.
         (using a PersistActor to persist data.)
+    7. smarter design for writing to close channel...
 
 
 
