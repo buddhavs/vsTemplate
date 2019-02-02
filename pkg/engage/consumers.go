@@ -28,19 +28,19 @@ func ontapConsumer(ctx context.Context, channel *amqp.Channel) error {
 		return errors.New("channel consume creating failed")
 	}
 
-	actorK, cancelK := actor.GetActor(actor.KindActor)
+	actorK := actor.GetActor(KindActor)
+	defer actor.CleanUp(actorK)
 
 	for {
 		select {
 		case <-ctx.Done():
-			cancelK()
 			return errors.New("application ends")
 		case d, ok := <-deliveries:
 			if ok {
 				// passing down the byte slice which is a more
 				// compact data structure than string,
 				// thus do not decoding the message here
-				actorK <- d.Body
+				actorK.Send(d.Body)
 				d.Ack(false)
 			} else {
 				break

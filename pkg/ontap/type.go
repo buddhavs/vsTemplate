@@ -1,4 +1,4 @@
-package actor
+package ontap
 
 type (
 	// --- ontap policy related ---
