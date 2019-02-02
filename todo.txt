@@ -15,6 +15,9 @@ Actor should have:
     pushing error to error actor for logging the message.)
     4. capacity information (number of default goroutines it supports)
     5. Cancel should remove the canceled actor from registry. // atomic
+    6, Actor by default is stateless, if stateful, persists it's state which
+        can be loaded through Restart.
+        (using a PersistActor to persist data.)
 
 
 
