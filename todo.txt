@@ -2,6 +2,7 @@
 1. rmq qos
 https://www.rabbitmq.com/consumer-prefetch.html
 
+
 --
 2.
 Actors::(done)
@@ -13,13 +14,15 @@ Type actor: 'Cap' actor. If type actor's action needs to be monitored later on,
 
 Monitor actor: Monitor status.
 
+
 --
 2.1
 Service actors::
 Engage actor: consume message from inbound IO (rmq in our case) and base on the
     message kind dispatch to next actor.
 
-DB actor: Base on caller's request, dedicate request to next DB actor(update/read/delete/etc.)
+DB actor: Base on caller's request, dedicate request to next DB actor
+(update/read/delete/etc)
 
 
 --
@@ -31,6 +34,7 @@ when process ends, snapshot the current status into DB.
 
 
 --
+***
 3. trace enabled
 
 
@@ -45,3 +49,11 @@ config versioning https://github.com/hashicorp/go-version
 
 --
 6. unit test only on onTap logic for now.
+
+
+// ------------------------------------------------------------------
+Tada moment:
+1. gRPC between daemon, actors amount processes
+2. light REST interface
+3. dynamic creates next actor process inside k8s, actor dies if idles
+4. integrate with tensorflow/ actor for tf.
