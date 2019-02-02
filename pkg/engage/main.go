@@ -8,6 +8,8 @@ import (
 	"vstmp/pkg/log"
 	"vstmp/pkg/signal"
 
+	"vstmp/pkg/funactor"
+
 	"go.uber.org/zap"
 )
 
@@ -26,6 +28,8 @@ func Start() {
 	signal.RegisterHandler(syscall.SIGINT, quitSig)
 
 	engage(ctx)
+
+	funactor.Start()
 
 	<-ctx.Done()
 
