@@ -25,7 +25,16 @@ Actor should have:
 
 2.1
 Message / payload should have Actors[address] in metadata, like route
-modifying MAC address for next hop.
+modifying MAC address for next hop. Including Version information
+    (Match to REST API version/gRPC version)
+
+Message / payload should have UUID
+Message / payload should have timestamp
+Message / payload should have version (message version)
+encode/encrypt section for later version.
+Message / payload can have a actor path field which records the
+    actors that has processed this message. (only record the previous
+    actor, since actor has and trace info help debugging the path.)
 
 --
 3.
