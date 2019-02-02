@@ -3,6 +3,7 @@ package actor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"vstmp/pkg/log"
 
 	"github.com/google/uuid"
@@ -28,7 +29,10 @@ type (
 )
 
 // definedActors holds process wide registered actors
-var definedActors = make(map[string]*Actor)
+var (
+	definedActors = make(map[string]*Actor)
+	mLock         sync.Mutex
+)
 
 // Init pre-defined actors standing by
 func Init(ctx context.Context) {
@@ -57,6 +61,9 @@ func Init(ctx context.Context) {
 
 // GetActor returns registered actor
 func GetActor(name string) *Actor {
+	defer mLock.Unlock()
+	mLock.Lock()
+
 	if v, ok := definedActors[name]; ok {
 		return v
 	}
@@ -66,6 +73,9 @@ func GetActor(name string) *Actor {
 
 // RegisterActor registers an actor
 func RegisterActor(actor *Actor) error {
+	defer mLock.Unlock()
+	mLock.Lock()
+
 	if _, ok := definedActors[actor.name]; ok {
 		err := fmt.Errorf(
 			"actor: %s uuid: %s already registered",
