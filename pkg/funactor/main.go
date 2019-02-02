@@ -9,7 +9,7 @@ import (
 func Start() {
 	ctx, _ := context.WithCancel(context.Background())
 
-	actor := vsactor.NewActor(ctx, "FUN", 10, funnyActor)
+	actor := vsactor.NewActor(ctx, "fun~", 10, funnyActor)
 
 	actor.Send("Fun~~")
 }
