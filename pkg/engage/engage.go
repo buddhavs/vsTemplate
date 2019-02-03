@@ -14,6 +14,8 @@ func engage(ctx context.Context) error {
 	// Initialize actors
 	vsactor.Init(ctx)
 
+	// TODO:
+	// Let ActorBroker handle this creation.
 	actorK := vsactor.NewActor(ctx, KindActor, 100, kindActor)
 
 	if err := vsactor.RegisterActor(actorK); err != nil {
