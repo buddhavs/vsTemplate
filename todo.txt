@@ -36,6 +36,9 @@ Message / payload can have a actor path field which records the
     actors that has processed this message. (only record the previous
     actor, since actor has and trace info help debugging the path.)
 
+exp backoff for blocking Actor
+https://godoc.org/github.com/cenkalti/backoff
+
 --
 3.
 Snapshot service:
