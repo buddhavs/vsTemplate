@@ -38,6 +38,8 @@ Message / payload can have a actor path field which records the
 
 exp backoff for blocking Actor
 https://godoc.org/github.com/cenkalti/backoff
+https://github.com/eapache/go-resiliency
+
 
 --
 3.
