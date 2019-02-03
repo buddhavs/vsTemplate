@@ -8,6 +8,11 @@ rmqctl debugging user issue
 
 --
 2.
+Introduce Actor Broker handles Actor's life cycle.
+Actor.member functions should be concurrent safe, re-register itself back to the pool
+**
+Use Actor's name and UUID as key (hash them as key, compact.)
+
 Actor should have:
     1. start time
     2. end time
@@ -20,6 +25,7 @@ Actor should have:
         (using a PersistActor to persist data.)
     7. smarter design for writing to close channel...
     8. Send/receive should NOT block.
+    9. Actor should die if idled(heuristic) in X seconds.
 
 
 
@@ -39,6 +45,7 @@ Message / payload can have a actor path field which records the
 exp backoff for blocking Actor
 https://godoc.org/github.com/cenkalti/backoff
 https://github.com/eapache/go-resiliency
+
 
 
 --
