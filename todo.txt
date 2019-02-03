@@ -46,7 +46,8 @@ exp backoff for blocking Actor
 https://godoc.org/github.com/cenkalti/backoff
 https://github.com/eapache/go-resiliency
 
-
+***
+Don't new errors, make it variable.
 
 --
 3.
