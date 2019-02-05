@@ -34,6 +34,7 @@ Message / payload should have Actors[address] in metadata, like route
 modifying MAC address for next hop. Including Version information
     (Match to REST API version/gRPC version)
 
+Message / payload should have 'priority' tag (like tcp's urgent pointer)
 Message / payload should have UUID
 Message / payload should have timestamp
 Message / payload should have version (message version)
