@@ -26,6 +26,9 @@ Actor should have:
     7. smarter design for writing to close channel...
     8. Send/receive should NOT block.
     9. Actor should die if idled(heuristic) in X seconds.
+    10. Stateful or not. If former, which has .Save() member function to persist the state.
+        (to local sqlite or PersistActor, which could either write to DB
+        of Redis)
 
 
 
