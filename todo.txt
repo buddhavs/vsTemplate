@@ -1,7 +1,6 @@
 --
 1. rmq qos
 https://www.rabbitmq.com/consumer-prefetch.html
-rmqctl TLS support
 rmqctl prints out msg header
 rmqctl debugging user issue
 
@@ -12,6 +11,9 @@ Introduce Actor Broker handles Actor's life cycle.
 Actor.member functions should be concurrent safe, re-register itself back to the pool
 **
 Use Actor's name and UUID as key (hash them as key, compact.)
+
+Remove ONTAP shit.
+Focus on General use case.
 
 Actor should have:
     1. start time
